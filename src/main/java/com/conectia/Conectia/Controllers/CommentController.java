@@ -42,6 +42,10 @@ public class CommentController {
             return ResponseEntity.badRequest().body(new ErrorData("Post","Post não encontrado."));
         }
 
+        if (newComment.userEmail() == null || newComment.idPost() == null || newComment.comment() == null){
+            return ResponseEntity.badRequest().body(new ErrorData("Nulo","Os campos devem ser preenchidos"));
+        }
+
         var comment = new Comment(newComment, user.getEmail(), post.getId());
         commentRepository.save(comment);
         return ResponseEntity.ok().body(newComment);
@@ -52,8 +56,12 @@ public class CommentController {
         var user = userRepository.findById(email).get();
         var comments = user.getComments();
 
+        if(user == null) {
+            return ResponseEntity.badRequest().body(new ErrorData("User","Usuário não encontrado."));
+        }
+
         if(comments == null) {
-            return ResponseEntity.badRequest().body(new ErrorData("comment","Nenhum comentário adicionado."));
+            return ResponseEntity.badRequest().body(new ErrorData("Comment","Nenhum comentário adicionado."));
         }
 
         return  ResponseEntity.ok().body(comments.stream().map(CommentDetail::new).toList());
@@ -63,6 +71,10 @@ public class CommentController {
     public ResponseEntity getCommentsPost(@PathVariable UUID idPost){
         var post = postRepository.findById(idPost).get();
         var comments = post.getComments();
+
+        if(post == null) {
+            return ResponseEntity.badRequest().body(new ErrorData("Post","Post não encontrado."));
+        }
 
         if(comments == null) {
             return ResponseEntity.badRequest().body(new ErrorData("Comment","Nenhum comnetário adicionado nesse post."));
@@ -76,8 +88,12 @@ public class CommentController {
         var user = userRepository.findById(email);
         var commentOptional = commentRepository.findById(idComment);
 
+        if(user == null) {
+            return ResponseEntity.badRequest().body(new ErrorData("User","Usuário não encontrado."));
+        }
+
         if(commentOptional == null){
-            return ResponseEntity.badRequest().body(new ErrorData("post","Recado não encontrado!"));
+            return ResponseEntity.badRequest().body(new ErrorData("Comment","Comentário não encontrado!"));
         }
 
         commentOptional.ifPresent(comment -> {
@@ -92,6 +108,18 @@ public class CommentController {
     public ResponseEntity editComment(@PathVariable String email, @PathVariable UUID idComment, @RequestBody EditComment commentEdited ){
         var user = userRepository.getByEmail(email);
         var comment = user.getComments().stream().filter(t -> t.getId_comment().equals(idComment)).findAny();
+
+        if(user == null) {
+            return ResponseEntity.badRequest().body(new ErrorData("User","Usuário não encontrado."));
+        }
+
+        if(comment == null) {
+            return ResponseEntity.badRequest().body(new ErrorData("Comment","Comentário não encontrado."));
+        }
+
+        if (commentEdited.comment() == null){
+            return ResponseEntity.badRequest().body(new ErrorData("Nulo","Os campos devem ser preenchidos"));
+        }
 
 
         var comment1 = comment.get();

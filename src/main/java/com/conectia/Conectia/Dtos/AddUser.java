@@ -11,8 +11,8 @@ public record AddUser(
         String email,
         @NotBlank
         String password,
-        @NotBlank
-        String repassword,
+//        @NotBlank
+//        String repassword,
         @NotBlank
         String name,
         @NotBlank

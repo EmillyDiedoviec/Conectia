@@ -31,7 +31,11 @@ public class PostController {
         var user = userRepository.getByEmail(newPost.userEmail());
 
         if(user == null) {
-            return ResponseEntity.badRequest().body(new ErrorData("user","Usuário não localizado."));
+            return ResponseEntity.badRequest().body(new ErrorData("User","Usuário não localizado."));
+        }
+
+        if (newPost.userEmail() == null || newPost.content() == null){
+            return ResponseEntity.badRequest().body(new ErrorData("Nulo","Os campos devem ser preenchidos"));
         }
 
         var post = new Post(newPost, user.getEmail());
@@ -45,8 +49,12 @@ public class PostController {
         var user = userRepository.findById(email).get();
         var posts = user.getPosts();
 
+        if(user == null) {
+            return ResponseEntity.badRequest().body(new ErrorData("User","Usuário não encontrado."));
+        }
+
         if(posts == null) {
-            return ResponseEntity.badRequest().body(new ErrorData("post","Nenhum post adicionado."));
+            return ResponseEntity.badRequest().body(new ErrorData("Post","Nenhum post adicionado."));
         }
 
         if(content != null) {
@@ -64,8 +72,12 @@ public class PostController {
         var user = userRepository.getByEmail(email);
         var post = postRepository.findById(idPost);
 
+        if(user == null) {
+            return ResponseEntity.badRequest().body(new ErrorData("User","Usuário não encontrado."));
+        }
+
         if(post == null){
-            return ResponseEntity.badRequest().body(new ErrorData("post","Recado não encontrado!"));
+            return ResponseEntity.badRequest().body(new ErrorData("Post","Recado não encontrado!"));
         }
 
         postRepository.delete(post.get());
@@ -78,8 +90,16 @@ public class PostController {
     public ResponseEntity editPost(@PathVariable String email, @PathVariable UUID idPost, @RequestBody EditPost postEdited ){
         var user = userRepository.getByEmail(email);
 
+        if(user == null) {
+            return ResponseEntity.badRequest().body(new ErrorData("User","Usuário não encontrado."));
+        }
+
         var optionalPost = user.getPosts().stream().filter(t -> t.getId().equals(idPost)).findAny();
 
+
+        if(optionalPost == null) {
+            return ResponseEntity.badRequest().body(new ErrorData("Post","Post não encontrado."));
+        }
 
         var post = optionalPost.get();
         post.EditPost(postEdited);

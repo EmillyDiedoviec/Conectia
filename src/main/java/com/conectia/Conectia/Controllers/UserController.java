@@ -8,10 +8,9 @@ import com.conectia.Conectia.Models.User;
 import com.conectia.Conectia.Repositories.UserRepository;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -22,6 +21,9 @@ public class UserController {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     @GetMapping
     public ResponseEntity getAllUsers(){
         return  ResponseEntity.ok().body(userRepository.findAll().stream().map(UserDetail::new).toList());
@@ -30,18 +32,25 @@ public class UserController {
     @PostMapping
     @Transactional
     public ResponseEntity createUser(@RequestBody AddUser data){
+
+        if (data.email() == null || data.password() == null ||
+//                data.repassword() == null ||
+                data.name() == null || data.born() == null){
+            return ResponseEntity.badRequest().body(new ErrorData("user","Os campos devem ser preenchidos"));
+        }
+
         if (userRepository.existsByEmail(data.email())){
             return ResponseEntity.badRequest().body(new ErrorData("user","Email já cadastrado"));
 
         }
 
-//        if (!userRepository.(data.password(), data.repassword())){
-//            return ResponseEntity.badRequest().body(new ErrorData("As senhas devem ser iguais."));
+//        if(data.password().equals(data.repassword())){
+//            return ResponseEntity.badRequest().body(new ErrorData("senha", "As senhas devem ser iguais"));
 //        }
 
         var user = new User(
                 data.email(),
-                data.password(),
+                passwordEncoder.encode(data.password()),
                 data.name(),
                 data.born()
         );
@@ -65,19 +74,6 @@ public class UserController {
         return  ResponseEntity.ok().body(user);
     }
 
-
-    @PostMapping("/login/{email}/{password}")
-    public ResponseEntity login(@PathVariable @Valid String email, @PathVariable @Valid String password){
-        var user = userRepository.getByEmail(email);
-
-        if(user.getEmail().equals(email) && user.getPassword().equals(password)){
-            return ResponseEntity.ok().body(user);
-
-        }else{
-            return ResponseEntity.badRequest().body(new ErrorData("login","E-mail ou senha inválido! Tente Novamente."));
-        }
-    }
-
     @PutMapping("/follow/{userEmail}/{followEmail}")
     public ResponseEntity follow(@PathVariable String userEmail, @PathVariable String followEmail) {
         var me = userRepository.getByEmail(userEmail);
@@ -87,11 +83,11 @@ public class UserController {
             return ResponseEntity.badRequest().body(new ErrorData("user","User não localizado"));
         }
 
-        if(me.getFollowers().contains(follow.getEmail())){
+        if(follow.getFollowers().contains(me.getEmail())){
             return ResponseEntity.badRequest().body(new ErrorData("follow","Você já segue essa pessoa"));
         } else {
-            me.getFollowers().add(follow.getEmail());
-            userRepository.save(follow);
+            follow.getFollowers().add(me.getEmail());
+            userRepository.save(me);
             return ResponseEntity.ok().body(me.getName() + " começou a seguir " + follow.getName());
         }
     }
@@ -105,9 +101,9 @@ public class UserController {
             return ResponseEntity.badRequest().body(new ErrorData("user","User não localizado"));
         }
 
-        if(me.getFollowers().contains(follow.getEmail())){
-            me.getFollowers().remove(follow.getEmail());
-            userRepository.save(follow);
+        if(follow.getFollowers().contains(me.getEmail())){
+            follow.getFollowers().remove(me.getEmail());
+            userRepository.save(me);
             return ResponseEntity.ok().body(me.getName() + " parou de seguir " + follow.getName());
         } else {
             return ResponseEntity.badRequest().body(new ErrorData("follow","Você não segue essa pessoa"));
